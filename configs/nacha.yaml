@@ -1,0 +1,36 @@
+# Layout and duplicate rules for NACHA (ACH) entry detail records.
+# Positions are 1-based, as in the NACHA spec. Every record is 94 characters.
+
+name: nacha_entry
+description: NACHA (ACH) entry detail records (record type 6).
+record_length: 94
+
+# Only check entry detail records. Headers and controls are skipped.
+filter: {field: record_type, equals: "6"}
+
+fields:
+  - {name: record_type,   start: 1,  length: 1,
+     description: "Record type code. 6 means entry detail."}
+  - {name: rdfi,          start: 4,  length: 8,
+     description: "Receiving bank routing number, without the check digit."}
+  - {name: account,       start: 13, length: 17, normalize: strip, sensitive: true,
+     description: "Receiver's bank account number."}
+  - {name: amount,        start: 30, length: 10, normalize: int,
+     description: "Payment amount in cents."}
+  - {name: individual_id, start: 40, length: 15, normalize: strip,
+     description: "Receiver's ID at the company, such as an employee number."}
+  - {name: name,          start: 55, length: 22, normalize: strip, sensitive: true,
+     description: "Receiver's name."}
+  - {name: trace_number,  start: 80, length: 15,
+     description: "Unique number the sending bank gives each entry."}
+
+duplicate_rules:
+  - {name: exact_line,   keys: [_line],
+     description: "The exact same record appears more than once."}
+  - {name: trace_number, keys: [trace_number],
+     description: "Two entries share a trace number, which should be unique."}
+  - {name: same_payment, keys: [account, amount, individual_id],
+     description: "Same person, account and amount, for example a resent batch."}
+  - {name: near_amount,  keys: [account, individual_id],
+     tolerance: {field: amount, max_diff: 500},
+     description: "Same person and account, amounts differ by at most $5.00."}
