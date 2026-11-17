@@ -1,0 +1,5 @@
+# Normalize text files in the repo.
+* text=auto
+
+# Fixed-width data: line endings are part of the format. Never convert them.
+*.ach -text

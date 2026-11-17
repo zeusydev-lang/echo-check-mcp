@@ -1,5 +1,6 @@
 """The generator must keep making the same sample file for seed 42."""
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -15,14 +16,26 @@ def run_generator(out_prefix: Path, seed: int) -> None:
     subprocess.run(command, check=True, capture_output=True)
 
 
-def test_seed_42_matches_committed_sample(tmp_path: Path) -> None:
-    """Seed 42 recreates data/sample.ach and data/sample.answers.json byte for byte."""
+def test_seed_42_matches_committed_ach(tmp_path: Path) -> None:
+    """Seed 42 recreates data/sample.ach byte for byte, line endings included."""
     run_generator(tmp_path / "sample", seed=42)
 
-    for name in ["sample.ach", "sample.answers.json"]:
-        fresh = (tmp_path / name).read_bytes()
-        committed = (SAMPLE_DIR / name).read_bytes()
-        assert fresh == committed, f"{name} changed. Did the generator change?"
+    fresh = (tmp_path / "sample.ach").read_bytes()
+    committed = (SAMPLE_DIR / "sample.ach").read_bytes()
+    assert fresh == committed, "sample.ach changed. Did the generator change?"
+
+
+def test_seed_42_matches_committed_answer_key(tmp_path: Path) -> None:
+    """Seed 42 recreates the same answer key.
+
+    We compare the parsed JSON, not the bytes, because Windows may write
+    the file with different line endings.
+    """
+    run_generator(tmp_path / "sample", seed=42)
+
+    fresh = json.loads((tmp_path / "sample.answers.json").read_text(encoding="utf-8"))
+    committed = json.loads((SAMPLE_DIR / "sample.answers.json").read_text(encoding="utf-8"))
+    assert fresh == committed, "sample.answers.json changed. Did the generator change?"
 
 
 def test_every_record_is_94_characters(tmp_path: Path) -> None:
