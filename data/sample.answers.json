@@ -1,0 +1,82 @@
+{
+  "seed": 42,
+  "record_length": 94,
+  "total_lines": 50,
+  "batches": 4,
+  "entry_records": 36,
+  "planted_count": 12,
+  "planted": [
+    {
+      "type": "exact_line",
+      "rule": "identical line, same trace_number",
+      "original_line": 19,
+      "duplicate_lines": [
+        21
+      ]
+    },
+    {
+      "type": "trace_collision",
+      "rule": "same trace_number, different payment",
+      "original_line": 15,
+      "duplicate_lines": [
+        20
+      ]
+    },
+    {
+      "type": "same_payment",
+      "rule": "same account + amount + individual_id",
+      "original_line": 4,
+      "duplicate_lines": [
+        11
+      ]
+    },
+    {
+      "type": "near_amount",
+      "rule": "same account + individual_id, amount differs by 446 cents",
+      "original_line": 9,
+      "duplicate_lines": [
+        24
+      ]
+    },
+    {
+      "type": "resent_batch",
+      "rule": "every entry of the batch repeated in a new batch",
+      "source_batch": 3,
+      "resent_batch": 4,
+      "pairs": [
+        [
+          27,
+          37
+        ],
+        [
+          28,
+          38
+        ],
+        [
+          29,
+          39
+        ],
+        [
+          30,
+          40
+        ],
+        [
+          31,
+          41
+        ],
+        [
+          32,
+          42
+        ],
+        [
+          33,
+          43
+        ],
+        [
+          34,
+          44
+        ]
+      ]
+    }
+  ]
+}
