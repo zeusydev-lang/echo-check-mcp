@@ -1,0 +1,19 @@
+# Python and tooling
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# Secrets
+.env
+
+# Engine output
+results*.json
+
+# Generated data: only the seed-42 sample is committed
+data/*
+!data/sample.ach
+!data/sample.answers.json

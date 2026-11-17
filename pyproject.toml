@@ -1,11 +1,31 @@
 [project]
 name = "echo-check-mcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "Find duplicate records in fixed-width files, with the layout and rules in a YAML config. Includes an MCP server."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.13"
 dependencies = [
     "mcp>=2.3.0",
     "pydantic>=2.14.3",
     "pyyaml>=6.0.3",
+]
+
+[project.scripts]
+dupcheck = "echo_check.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.7,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "echo_check"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
 ]
