@@ -3,7 +3,6 @@
 import subprocess
 
 import echo_check
-from echo_check.cli import STUB_MESSAGE
 
 
 def test_package_has_a_version() -> None:
@@ -11,8 +10,8 @@ def test_package_has_a_version() -> None:
     assert echo_check.__version__ == "0.1.0"
 
 
-def test_dupcheck_command_runs() -> None:
+def test_dupcheck_command_is_installed() -> None:
     """The `dupcheck` entry point from pyproject.toml is installed and runs."""
-    result = subprocess.run(["dupcheck"], capture_output=True, text=True)
+    result = subprocess.run(["dupcheck", "--help"], capture_output=True, text=True)
     assert result.returncode == 0
-    assert STUB_MESSAGE in result.stdout
+    assert "Find duplicate records" in result.stdout
