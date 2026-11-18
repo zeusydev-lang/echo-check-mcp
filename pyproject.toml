@@ -1,6 +1,6 @@
 [project]
 name = "echo-check-mcp"
-version = "0.1.0"
+version = "1.0.0"
 description = "Find duplicate records in fixed-width files, with the layout and rules in a YAML config. Includes an MCP server."
 readme = "README.md"
 license = "MIT"
@@ -30,4 +30,8 @@ testpaths = ["tests"]
 [dependency-groups]
 dev = [
     "pytest>=9.2.0",
+    "ruff>=0.17.5",
+]
+docs = [
+    "mkdocs-material>=9.8.1",
 ]

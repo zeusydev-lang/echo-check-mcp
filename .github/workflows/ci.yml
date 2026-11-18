@@ -1,0 +1,36 @@
+# Lint, tests, detection evals and a docs build on every push and pull request.
+#
+# No secrets are used. The summary tests use a fake Claude client, and the
+# evals here are detection only (no API calls). `run_evals.py` exits with 1 if
+# an exact rule drops below 100% precision or recall, which fails the run.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Lint, test, evals, docs build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Install
+        run: uv sync --locked
+      - name: Lint
+        run: uv run ruff check src tests evals
+      - name: Tests (no API calls)
+        run: uv run pytest -q
+      - name: Detection evals (exact rules must be 100%)
+        run: uv run python evals/run_evals.py
+      - name: Docs build (fails on broken links)
+        run: uv run --group docs mkdocs build --strict

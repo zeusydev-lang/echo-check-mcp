@@ -17,3 +17,6 @@ results*.json
 data/*
 !data/sample.ach
 !data/sample.answers.json
+
+# Built docs site
+site/

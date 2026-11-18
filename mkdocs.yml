@@ -1,0 +1,38 @@
+site_name: Build a Config-Driven MCP Server
+site_description: >-
+  A short course: find duplicate records in fixed-width files with a YAML
+  config, serve the check to Claude over MCP, summarize it and prove it works.
+site_url: https://zeusydev-lang.github.io/echo-check-mcp/
+repo_url: https://github.com/zeusydev-lang/echo-check-mcp
+repo_name: echo-check-mcp
+edit_uri: edit/main/course/
+docs_dir: course
+
+theme:
+  name: material
+  features: [navigation.footer, content.code.copy]
+  palette:
+    - scheme: default
+      toggle: {icon: material/brightness-7, name: Dark mode}
+    - scheme: slate
+      toggle: {icon: material/brightness-4, name: Light mode}
+
+nav:
+  - Home: index.md
+  - "Module 1: Set up the project": module-01.md
+  - "Module 2: Describe the file in a config": module-02.md
+  - "Module 3: Find the duplicates": module-03.md
+  - "Module 4: Serve it to an AI assistant": module-04.md
+  - "Module 5: Let Claude explain the results": module-05.md
+  - "Module 6: Prove it works (evals)": module-06.md
+  - "Module 7: Ship it": module-07.md
+
+markdown_extensions: [admonition, tables, pymdownx.highlight, pymdownx.superfences]
+
+# Links from the course to files in the repo (src/, configs/, ...) point at
+# GitHub, not at pages on this site.
+validation:
+  links:
+    not_found: warn
+    absolute_links: ignore
+    unrecognized_links: ignore
