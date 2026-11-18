@@ -140,6 +140,7 @@ def test_request_asks_for_structured_output(masked_result: CheckResult) -> None:
     assert request["output_format"] is Summary
     assert "<results>" in request["messages"][0]["content"]
     assert "Do not invent" in request["system"]
+    assert "Count such a line once" in request["system"]
 
 
 # ---------- checking the answer ----------

@@ -36,6 +36,10 @@ lines are all in batch 3, and "3-4" means a group with lines in batch 3 and
 batch 4. Many groups linking the same two batches usually means a whole batch
 was sent twice.
 
+Rules overlap on purpose: an exact duplicate line also has the same trace
+number and the same payment, so exact_line, trace_number and same_payment all
+report it. Count such a line once, and say which rules caught it.
+
 Rules:
 - Use only numbers that appear in the results. Do not invent, estimate or
   calculate new numbers.
