@@ -21,7 +21,7 @@ fields:
      description: "Receiver's bank account number."}
   - {name: amount,        start: 30, length: 10, normalize: int,
      description: "Payment amount in cents."}
-  - {name: individual_id, start: 40, length: 15, normalize: strip,
+  - {name: individual_id, start: 40, length: 15, normalize: strip, sensitive: true,
      description: "Receiver's ID at the company, such as an employee number."}
   - {name: name,          start: 55, length: 22, normalize: strip, sensitive: true,
      description: "Receiver's name."}
