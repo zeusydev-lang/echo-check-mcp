@@ -91,6 +91,22 @@ class DuplicateRule(StrictModel):
     description: str | None = None
 
 
+class BatchSpec(StrictModel):
+    """How to spot batch header lines and read the batch id from them.
+
+    Records after a header belong to that batch, until the next header.
+    """
+
+    header_starts_with: str
+    id_start: int
+    id_length: int
+
+    @property
+    def id_end(self) -> int:
+        """The last position of the batch id (1-based, inclusive)."""
+        return self.id_start + self.id_length - 1
+
+
 class LayoutConfig(StrictModel):
     """A whole config: the record layout plus the duplicate rules."""
 
@@ -99,6 +115,7 @@ class LayoutConfig(StrictModel):
     fields: list[FieldSpec]
     duplicate_rules: list[DuplicateRule]
     filter: RecordFilter | None = None
+    batch: BatchSpec | None = None
     description: str | None = None
 
     def field_by_name(self) -> dict[str, FieldSpec]:
@@ -129,6 +146,21 @@ def find_problems(config: LayoutConfig) -> list[str]:
     problems += check_rules(config.duplicate_rules, fields)
     if config.filter is not None:
         problems += check_filter(config.filter, fields)
+    if config.batch is not None:
+        problems += check_batch(config.batch, config.record_length)
+    return problems
+
+
+def check_batch(batch: BatchSpec, record_length: int) -> list[str]:
+    """The header prefix must not be empty, and the batch id must fit the record."""
+    problems = []
+    if batch.header_starts_with == "":
+        problems.append("batch: header_starts_with must not be empty")
+    if batch.id_start < 1 or batch.id_length < 1 or batch.id_end > record_length:
+        problems.append(
+            f"batch: id at {batch.id_start}-{batch.id_end} "
+            f"is outside the record (1-{record_length})"
+        )
     return problems
 
 

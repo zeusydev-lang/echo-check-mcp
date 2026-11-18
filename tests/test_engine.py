@@ -12,17 +12,22 @@ from typing import Any
 
 import pytest
 
-from echo_check.config import LayoutConfig, parse_config
+from echo_check.config import LayoutConfig, load_config, parse_config
 from echo_check.engine import (
     CheckResult,
     Group,
     check_file,
+    clean_batch_id,
     find_near_pairs,
     mask_line,
     mask_value,
     normalize,
     slice_field,
 )
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+SAMPLE = PROJECT_ROOT / "data" / "sample.ach"
+NACHA_CONFIG = PROJECT_ROOT / "configs" / "nacha.yaml"
 
 
 def tiny_config() -> LayoutConfig:
@@ -278,3 +283,47 @@ def test_stats_count_groups_and_lines(tmp_path: Path) -> None:
     assert stats.groups_per_rule["same"] == 1
     assert stats.lines_in_groups_per_rule["same"] == 3
     assert stats.groups_per_rule["exact"] == 0
+
+
+# ---------- batches ----------
+
+
+def test_no_batch_section_means_no_breakdown(tmp_path: Path) -> None:
+    result = run_check(tmp_path, [record("A1", 100, "r1"), record("A1", 100, "r2")])
+    assert result.batches is None
+
+
+def test_resent_batch_shows_as_a_batch_link() -> None:
+    """The sample file's resent batch (3 sent again as 4) links batches 3 and 4."""
+    result = check_file(SAMPLE, load_config(NACHA_CONFIG))
+
+    assert result.batches is not None
+    assert result.batches.records_per_batch == {"1": 9, "2": 11, "3": 8, "4": 8}
+    assert result.batches.groups_by_batches["same_payment"]["3-4"] == 8
+
+
+@pytest.mark.parametrize(("raw", "expected"), [("0000003", "3"), ("  12", "12"), ("B-7 ", "B-7")])
+def test_clean_batch_id(raw: str, expected: str) -> None:
+    assert clean_batch_id(raw) == expected
+
+
+def test_lines_are_traced_to_their_batch(tmp_path: Path) -> None:
+    """A header line "5...<id>" starts a batch; records after it belong to it."""
+    config = parse_config(
+        {**tiny_config().model_dump(), "batch": {"header_starts_with": "5", "id_start": 18, "id_length": 3}}
+    )
+    header_1 = "5" + " " * 16 + "001"
+    header_2 = "5" + " " * 16 + "002"
+    lines = [
+        header_1, record("A1", 100, "r1"), record("B2", 200, "r2"),
+        header_2, record("A1", 100, "r3"), record("B2", 200, "r4"), record("B2", 200, "r5"),
+    ]
+    path = tmp_path / "batches.txt"
+    path.write_text("\n".join(lines) + "\n", encoding="ascii")
+
+    result = check_file(path, config)
+
+    assert result.batches is not None
+    assert result.batches.records_per_batch == {"1": 2, "2": 3}
+    # A1 pair spans batches 1-2; B2 group (3 lines) also spans 1-2.
+    assert result.batches.groups_by_batches["same"] == {"1-2": 2}

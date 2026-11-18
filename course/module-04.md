@@ -66,7 +66,10 @@ $env:ECHO_CHECK_ALLOWED_DIRS = "C:\zeusy\echo-check-mcp\data"
 npx @modelcontextprotocol/inspector uv --directory C:\zeusy\echo-check-mcp run echo-check-mcp
 ```
 
-Then add it to Claude Desktop. Edit `%APPDATA%\Claude\claude_desktop_config.json`:
+Then add it to Claude Desktop. The easiest way to open the right file is
+**Settings → Developer → Edit Config**. It is usually
+`%APPDATA%\Claude\claude_desktop_config.json`. The Microsoft Store version keeps
+it under `%LOCALAPPDATA%\Packages\Claude_…\LocalCache\Roaming\Claude\` instead.
 
 ```json
 {

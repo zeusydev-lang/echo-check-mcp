@@ -15,13 +15,23 @@ pair with 0 < difference <= max_diff is reported as its own group of 2 lines.
 Sensitive values are masked in the result by default.
 """
 
+import bisect
 import time
+from collections import Counter
 from collections.abc import Iterator
 from pathlib import Path
 
 from pydantic import BaseModel
 
-from echo_check.config import LINE_KEY, DuplicateRule, FieldSpec, LayoutConfig
+from echo_check.config import (
+    LINE_KEY,
+    BatchSpec,
+    DuplicateRule,
+    FieldSpec,
+    LayoutConfig,
+)
+
+NO_BATCH = "none"  # batch name for records that come before any batch header
 
 # A normalized field value: text, or a whole number for `normalize: int`.
 Value = str | int
@@ -65,6 +75,17 @@ class Stats(BaseModel):
     elapsed_seconds: float
 
 
+class BatchBreakdown(BaseModel):
+    """Where the duplicates sit, batch by batch (only when the config has `batch`).
+
+    `groups_by_batches` counts each rule's groups by the batches their lines
+    are in: "3" means inside batch 3, "3-4" means one line in 3 and one in 4.
+    """
+
+    records_per_batch: dict[str, int]
+    groups_by_batches: dict[str, dict[str, int]]
+
+
 class CheckResult(BaseModel):
     """The full result of checking one file against one config."""
 
@@ -76,6 +97,7 @@ class CheckResult(BaseModel):
     bad_lines: list[BadLine]
     rules: list[RuleResult]
     stats: Stats
+    batches: BatchBreakdown | None = None
 
 
 # ---------- reading and slicing ----------
@@ -269,6 +291,7 @@ def check_file(path: str | Path, config: LayoutConfig, mask: bool = True) -> Che
     started = time.perf_counter()
     path = Path(path)
     indexes = [RuleIndex(rule) for rule in config.duplicate_rules]
+    batches = BatchTracker(config.batch) if config.batch is not None else None
     bad_lines: list[BadLine] = []
     total_lines = 0
     records_checked = 0
@@ -280,6 +303,8 @@ def check_file(path: str | Path, config: LayoutConfig, mask: bool = True) -> Che
         if problem is not None:
             bad_lines.append(BadLine(line=line_number, reason=problem))
             continue
+        if batches is not None:
+            batches.see_line(line_number, line)
         if not passes_filter(line, config):
             records_skipped += 1
             continue
@@ -289,12 +314,15 @@ def check_file(path: str | Path, config: LayoutConfig, mask: bool = True) -> Che
             bad_lines.append(BadLine(line=line_number, reason=str(error)))
             continue
         records_checked += 1
+        if batches is not None:
+            batches.count_record(line_number)
         for index in indexes:
             index.add(line_number, line, record)
 
     rules = [build_rule_result(index, config, mask) for index in indexes]
     stats = build_stats(rules, records_skipped, len(bad_lines), time.perf_counter() - started)
     return CheckResult(
+        batches=batches.breakdown(rules) if batches is not None else None,
         file=str(path),
         config=config.name,
         masked=mask,
@@ -304,6 +332,74 @@ def check_file(path: str | Path, config: LayoutConfig, mask: bool = True) -> Che
         rules=rules,
         stats=stats,
     )
+
+
+# ---------- batches ----------
+
+
+class BatchTracker:
+    """Remembers where each batch starts, so any line can be traced to its batch.
+
+    Only the header line numbers are stored (one per batch), not one entry per
+    record, so this stays small even for a million lines.
+    """
+
+    def __init__(self, spec: BatchSpec) -> None:
+        self.spec = spec
+        self.header_lines: list[int] = []
+        self.batch_ids: list[str] = []
+        self.records_per_batch: Counter[str] = Counter()
+
+    def see_line(self, line_number: int, line: str) -> None:
+        """If this line is a batch header, a new batch starts here."""
+        if line.startswith(self.spec.header_starts_with):
+            raw_id = line[self.spec.id_start - 1 : self.spec.id_end]
+            self.header_lines.append(line_number)
+            self.batch_ids.append(clean_batch_id(raw_id))
+
+    def count_record(self, line_number: int) -> None:
+        """Count one checked record in its batch."""
+        self.records_per_batch[self.batch_of(line_number)] += 1
+
+    def batch_of(self, line_number: int) -> str:
+        """The batch a line belongs to: the last header at or before it."""
+        position = bisect.bisect_right(self.header_lines, line_number) - 1
+        if position < 0:
+            return NO_BATCH
+        return self.batch_ids[position]
+
+    def breakdown(self, rules: list[RuleResult]) -> BatchBreakdown:
+        """Count each rule's groups by the batches their lines are in."""
+        groups_by_batches: dict[str, dict[str, int]] = {}
+        for rule in rules:
+            counts: Counter[str] = Counter()
+            for group in rule.groups:
+                counts[self.batch_label(group.lines)] += 1
+            groups_by_batches[rule.name] = dict(sorted(counts.items()))
+        return BatchBreakdown(
+            records_per_batch=dict(self.records_per_batch),
+            groups_by_batches=groups_by_batches,
+        )
+
+    def batch_label(self, lines: list[int]) -> str:
+        """"3" if all lines are in batch 3, "3-4" if they are in batches 3 and 4."""
+        batch_ids = {self.batch_of(line) for line in lines}
+        return "-".join(sorted(batch_ids, key=batch_sort_key))
+
+
+def clean_batch_id(raw_id: str) -> str:
+    """Turn "0000003" into "3". Ids that aren't numbers are only stripped."""
+    text = raw_id.strip()
+    if text.isdigit():
+        return str(int(text))
+    return text
+
+
+def batch_sort_key(batch_id: str) -> tuple[int, int, str]:
+    """Sort numeric batch ids as numbers (2 before 10), and others after them."""
+    if batch_id.isdigit():
+        return (0, int(batch_id), "")
+    return (1, 0, batch_id)
 
 
 def build_stats(

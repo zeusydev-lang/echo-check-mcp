@@ -8,6 +8,10 @@ record_length: 94
 # Only check entry detail records. Headers and controls are skipped.
 filter: {field: record_type, equals: "6"}
 
+# Batch header records start with 5 and carry the batch number at 88-94.
+# Optional: it lets results and summaries show which batches are involved.
+batch: {header_starts_with: "5", id_start: 88, id_length: 7}
+
 fields:
   - {name: record_type,   start: 1,  length: 1,
      description: "Record type code. 6 means entry detail."}
