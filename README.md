@@ -6,8 +6,8 @@ and as an MCP server.
 
 This is the running example for the course *Build a Config-Driven MCP Server*.
 
-> **Work in progress.** The duplicate check, the `dupcheck` command and the MCP
-> server work. The LLM summary, evals and docs site are next. See `CLAUDE.md`.
+> **Work in progress.** The duplicate check, the `dupcheck` command, the MCP
+> server and the LLM summary work. Evals and the docs site are next. See `CLAUDE.md`.
 
 ## Try the sample data
 
@@ -30,6 +30,18 @@ Tools: `list_configs`, `describe_layout`, `check_duplicates`. The server only
 reads files under the folders in `ECHO_CHECK_ALLOWED_DIRS` (`;`-separated on
 Windows), and results are always masked. Setup for the MCP Inspector and
 Claude Desktop is in [course/module-04.md](course/module-04.md).
+
+## Summary
+
+```powershell
+$env:ANTHROPIC_API_KEY = "sk-ant-..."
+uv run dupcheck data/sample.ach --config configs/nacha.yaml --summary
+```
+
+Claude writes a short summary (`headline`, `likely_cause`, `affected_batches`,
+`suggested_action`) from counts, the per-batch breakdown and masked samples only.
+The model is `ECHO_CHECK_MODEL` (default `claude-opus-5-5`). Over MCP, use the
+`summarize_results` tool. See [course/module-05.md](course/module-05.md).
 
 ## License
 

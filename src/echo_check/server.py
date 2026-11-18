@@ -17,12 +17,22 @@ import os
 from pathlib import Path
 from typing import Annotated
 
+import anthropic
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import BaseModel, Field
 
+from echo_check import summary
 from echo_check.config import ConfigError, LayoutConfig, load_config
-from echo_check.engine import BadLine, CheckResult, Group, Stats, check_file
+from echo_check.engine import (
+    BadLine,
+    BatchBreakdown,
+    CheckResult,
+    Group,
+    Stats,
+    check_file,
+)
+from echo_check.summary import SummaryResult
 
 ALLOWED_DIRS_VAR = "ECHO_CHECK_ALLOWED_DIRS"
 CONFIG_DIR_VAR = "ECHO_CHECK_CONFIG_DIR"
@@ -35,7 +45,8 @@ server = MCPServer(
     instructions=(
         "Finds duplicate records in fixed-width files such as NACHA (ACH) files. "
         "Call list_configs to see the layouts, describe_layout to see fields and "
-        "rules, then check_duplicates on a file. Sensitive values are masked."
+        "rules, then check_duplicates on a file. summarize_results adds a short "
+        "written summary. Sensitive values are masked."
     ),
 )
 
@@ -74,6 +85,7 @@ class CappedResult(BaseModel):
     bad_lines: list[BadLine]
     rules: list[CappedRule]
     stats: Stats
+    batches: BatchBreakdown | None
 
 
 # ---------- which files may be read ----------
@@ -159,6 +171,7 @@ def cap_result(result: CheckResult, max_groups: int) -> CappedResult:
         bad_lines=result.bad_lines[:max_groups],
         rules=rules,
         stats=result.stats,
+        batches=result.batches,
     )
 
 
@@ -207,6 +220,24 @@ def check_duplicates(
     config = load_named_config(config_name)
     result = check_file(path, config, mask=True)
     return cap_result(result, max_groups)
+
+
+@server.tool()
+def summarize_results(file_path: str, config_name: str) -> SummaryResult:
+    """Check a file for duplicates, then get a short written summary from Claude.
+
+    Claude only sees counts, the batch breakdown and masked samples.
+    Needs ANTHROPIC_API_KEY in the server's environment.
+    """
+    path = resolve_allowed_file(file_path, allowed_dirs())
+    config = load_named_config(config_name)
+    result = check_file(path, config, mask=True)
+    try:
+        return summary.summarize(result)
+    except summary.MissingCredentialsError as error:
+        raise ToolError(str(error)) from error
+    except (anthropic.AnthropicError, summary.SummaryError) as error:
+        raise ToolError(f"Summary failed: {error}") from error
 
 
 def main() -> None:

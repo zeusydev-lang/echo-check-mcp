@@ -364,3 +364,28 @@ def test_error_names_the_file(tmp_path: Path) -> None:
     with pytest.raises(ConfigError) as caught:
         load_config(path)
     assert str(caught.value).startswith(str(path))
+
+
+# ---------- batch section ----------
+
+
+def test_nacha_has_a_batch_section() -> None:
+    batch = load_config(NACHA_CONFIG).batch
+    assert batch is not None
+    assert (batch.header_starts_with, batch.id_start, batch.id_end) == ("5", 88, 94)
+
+
+def test_batch_section_is_optional() -> None:
+    assert parse_config(minimal_config()).batch is None
+
+
+def test_batch_id_past_record_length() -> None:
+    data = minimal_config()
+    data["batch"] = {"header_starts_with": "5", "id_start": 18, "id_length": 5}
+    assert "batch: id at 18-22 is outside the record (1-20)" in problems_for(data)
+
+
+def test_batch_header_prefix_must_not_be_empty() -> None:
+    data = minimal_config()
+    data["batch"] = {"header_starts_with": "", "id_start": 1, "id_length": 2}
+    assert "header_starts_with must not be empty" in problems_for(data)

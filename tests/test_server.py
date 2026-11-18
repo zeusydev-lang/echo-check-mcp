@@ -104,12 +104,12 @@ def test_cap_keeps_totals_and_marks_truncation() -> None:
 
 
 @pytest.mark.anyio
-async def test_lists_the_three_tools() -> None:
+async def test_lists_the_tools() -> None:
     async with Client(server) as client:
         tools = await client.list_tools()
 
     assert sorted(tool.name for tool in tools.tools) == [
-        "check_duplicates", "describe_layout", "list_configs",
+        "check_duplicates", "describe_layout", "list_configs", "summarize_results",
     ]
 
 
