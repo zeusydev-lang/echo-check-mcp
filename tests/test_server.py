@@ -131,7 +131,7 @@ async def test_describe_layout() -> None:
     layout = result.structured_content
     assert layout["record_length"] == 94
     sensitive = [field["name"] for field in layout["fields"] if field["sensitive"]]
-    assert sensitive == ["account", "name"]
+    assert sensitive == ["account", "individual_id", "name"]
 
 
 @pytest.mark.anyio

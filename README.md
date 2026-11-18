@@ -7,7 +7,7 @@ and as an MCP server.
 This is the running example for the course *Build a Config-Driven MCP Server*.
 
 > **Work in progress.** The duplicate check, the `dupcheck` command, the MCP
-> server and the LLM summary work. Evals and the docs site are next. See `CLAUDE.md`.
+> server, the LLM summary and the evals work. The docs site is next. See `CLAUDE.md`.
 
 ## Try the sample data
 
@@ -42,6 +42,17 @@ Claude writes a short summary (`headline`, `likely_cause`, `affected_batches`,
 `suggested_action`) from counts, the per-batch breakdown and masked samples only.
 The model is `ECHO_CHECK_MODEL` (default `claude-opus-5-5`). Over MCP, use the
 `summarize_results` tool. See [course/module-05.md](course/module-05.md).
+
+## Evals
+
+```powershell
+uv run python evals/run_evals.py                              # detection, no API key
+uv run --env-file .env python evals/run_evals.py --judge      # + summary checks (API calls)
+```
+
+Generates seeded files, scores each rule's precision and recall against the
+answer keys, and checks that summaries only use numbers from the data. Exits
+with 1 if an exact rule drops below 100%. See [course/module-06.md](course/module-06.md).
 
 ## License
 

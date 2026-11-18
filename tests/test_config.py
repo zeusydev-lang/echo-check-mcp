@@ -56,11 +56,11 @@ def test_nacha_config_loads() -> None:
 
 
 def test_nacha_sensitive_fields() -> None:
-    """Account and name are marked sensitive, so they get masked later."""
+    """Account, employee ID and name are marked sensitive, so they get masked."""
     config = load_config(NACHA_CONFIG)
 
     sensitive = [spec.name for spec in config.fields if spec.sensitive]
-    assert sensitive == ["account", "name"]
+    assert sensitive == ["account", "individual_id", "name"]
 
 
 def test_nacha_field_positions() -> None:
