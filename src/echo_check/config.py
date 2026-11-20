@@ -185,9 +185,13 @@ def check_field_bounds(fields: list[FieldSpec], record_length: int) -> list[str]
     problems = []
     for spec in fields:
         if spec.start < 1:
-            problems.append(f"field '{spec.name}': start must be at least 1, got {spec.start}")
+            problems.append(
+                f"field '{spec.name}': start must be at least 1, got {spec.start}"
+            )
         if spec.length < 1:
-            problems.append(f"field '{spec.name}': length must be at least 1, got {spec.length}")
+            problems.append(
+                f"field '{spec.name}': length must be at least 1, got {spec.length}"
+            )
         elif spec.end > record_length:
             problems.append(
                 f"field '{spec.name}' ends at position {spec.end}, "
@@ -253,13 +257,19 @@ def check_tolerance(
             f"to compare amounts, got '{spec.normalize}'"
         )
     if tolerance.field in rule.keys:
-        problems.append(f"{label}: field '{tolerance.field}' can't also be one of the keys")
+        problems.append(
+            f"{label}: field '{tolerance.field}' can't also be one of the keys"
+        )
     if tolerance.max_diff < 1:
-        problems.append(f"{label}: max_diff must be at least 1, got {tolerance.max_diff}")
+        problems.append(
+            f"{label}: max_diff must be at least 1, got {tolerance.max_diff}"
+        )
     return problems
 
 
-def check_filter(record_filter: RecordFilter, fields: dict[str, FieldSpec]) -> list[str]:
+def check_filter(
+    record_filter: RecordFilter, fields: dict[str, FieldSpec]
+) -> list[str]:
     """The filter must use a known field, and `equals` must match its type.
 
     The filter compares the *normalized* value. An `int` field gives a number,
@@ -272,9 +282,13 @@ def check_filter(record_filter: RecordFilter, fields: dict[str, FieldSpec]) -> l
     wants_number = spec.normalize == "int"
     is_number = isinstance(record_filter.equals, int)
     if wants_number and not is_number:
-        return [f"filter: field '{spec.name}' is normalize: int, so equals must be a number"]
+        return [
+            f"filter: field '{spec.name}' is normalize: int, so equals must be a number"
+        ]
     if is_number and not wants_number:
-        return [f"filter: field '{spec.name}' is text, so put equals in quotes, like \"6\""]
+        return [
+            f"filter: field '{spec.name}' is text, so put equals in quotes, like \"6\""
+        ]
     return []
 
 
@@ -301,7 +315,8 @@ def load_config(path: str | Path) -> LayoutConfig:
     if not path.is_file():
         raise ConfigError(str(path), ["config file not found"])
     try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        with path.open(encoding="utf-8") as file:
+            data = yaml.safe_load(file)
     except yaml.YAMLError as error:
         raise ConfigError(str(path), [f"invalid YAML: {error}"]) from error
     return parse_config(data, source=str(path))
@@ -310,7 +325,9 @@ def load_config(path: str | Path) -> LayoutConfig:
 def parse_config(data: Any, source: str = "<config>") -> LayoutConfig:
     """Validate already-loaded data (usually a dict from YAML)."""
     if not isinstance(data, dict):
-        raise ConfigError(source, ["the top level of the config must be a mapping of keys"])
+        raise ConfigError(
+            source, ["the top level of the config must be a mapping of keys"]
+        )
     try:
         return LayoutConfig.model_validate(data)
     except ValidationError as error:
